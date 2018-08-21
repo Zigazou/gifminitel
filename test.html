@@ -1,0 +1,64 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Test GifMinitel</title>
+    </head>
+    <body>
+        <fieldset>
+            <a href="" id="test-lnk">Télécharger</a>
+        </fieldset>
+        <fieldset>
+            <img src="" id="test-img">
+        </fieldset>
+        <script src="gifminitel.js"></script>
+        <script>
+            const gifm = new GifMinitel(320, 2, 40)
+            const array = []
+            for(let i = 0; i < 40; i++) {
+                array.push([0, 0, 0, 255]) // Black
+                array.push([0, 0, 255, 255]) // Blue
+                array.push([0, 0, 255, 255]) // Blue
+                array.push([0, 0, 0, 255]) // Black
+                array.push([0, 0, 255, 255]) // Blue
+                array.push([0, 0, 255, 255]) // Blue
+                array.push([255, 0, 0, 255]) // Red
+                array.push([0, 0, 0, 255]) // Black
+                array.push([0, 0, 255, 255]) // Blue
+                array.push([0, 0, 255, 255]) // Blue
+                array.push([255, 0, 0, 255]) // Red
+                array.push([0, 0, 0, 255]) // Black
+                array.push([0, 0, 0, 255]) // Black
+                array.push([0, 0, 0, 255]) // Black
+                array.push([0, 0, 0, 0]) // Transparent
+                array.push([0, 0, 0, 0]) // Transparent
+            }
+            gifm.add(array, 320, 2)
+            /*
+            gifm.add([
+                [0, 0, 0, 255], // Black
+                [0, 0, 255, 255], // Blue
+                [0, 0, 255, 255], // Blue
+                [0, 0, 0, 255], // Black
+                [0, 0, 255, 255], // Blue
+                [0, 0, 255, 255], // Blue
+                [255, 0, 0, 255], // Red
+                [0, 0, 0, 255], // Black
+                [0, 0, 255, 255], // Blue
+                [0, 0, 255, 255], // Blue
+                [255, 0, 0, 255], // Red
+                [0, 0, 0, 255], // Black
+                [0, 0, 0, 255], // Black
+                [0, 0, 0, 255], // Black
+                [0, 0, 0, 0], // Transparent
+                [0, 0, 0, 0] // Transparent
+            ])
+            */
+
+            const data = gifm.save()
+            const blob = new Blob([data], {type: "image/gif"});
+            const url = URL.createObjectURL(blob, {type: "image/gif"})
+            document.getElementById("test-lnk").href = url
+            document.getElementById("test-img").url = url
+        </script>
+    </body>
+</html>

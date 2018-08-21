@@ -35,7 +35,7 @@ compression code 23
 7
 end of information 17
 
-0 1 1 (0 1) 1 2 () () 0 0 7 7
+(16) 0 1 1 (0 1) 1 2 () () 0 0 7 7 (17)
 
 0 1 1 2 0
 
@@ -58,3 +58,5 @@ Color table
 0100 cyan
 0101 magenta
 0111 yellow
+
+
