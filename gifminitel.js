@@ -135,3 +135,32 @@ GifMinitel.GraphicControlExtension = function(delay) {
 GifMinitel.trailer = new Uint8Array([
     0x38 // Trailer
 ])
+
+GifMinitel.lzwEncode = function(s) {
+    const dictionary = {}
+    const data = (s + "").split("")
+    const out = []
+    let phrase = data[0]
+    let code = 256
+
+    for(let i = 1; i < data.length; i++) {
+        const currentChar = data[i]
+
+        if(dictionary[phrase + currentChar] !== null) {
+            phrase += currentChar
+        } else {
+            out.push(phrase.length > 1 ? dictionary[phrase]
+                                       : phrase.charCodeAt(0))
+            dictionary[phrase + currentChar] = code
+            code++
+            phrase = currentChar
+        }
+    }
+
+    out.push(phrase.length > 1 ? dictionary[phrase] : phrase.charCodeAt(0))
+    for(let i = 0; i < out.length; i++) {
+        out[i] = String.fromCharCode(out[i])
+    }
+
+    return out.join("")
+}
