@@ -181,6 +181,12 @@ class GifCompress {
         this.nextCode = 17
 
         /**
+         * The last code being used in the output stream.
+         * @member {number}
+         */
+        this.lastUsedCode = 0
+
+        /**
          * The code size
          *
          * @member {number}
@@ -241,7 +247,9 @@ class GifCompress {
 
             default:
                 // Find the index of the phrase in the dictionary.
-                this.output.push(this.dictionary.get(this.phrase.toString()))
+                const code = this.dictionary.get(this.phrase.toString())
+                if(code > this.lastUsedCode) this.lastUsedCode = code
+                this.output.push(code)
         }
     }
 
@@ -252,15 +260,15 @@ class GifCompress {
      */
     encode() {
         // Calculate how many bits are needed to encode a dictionary index.
-        this.codeSize = Math.floor(Math.log2(this.nextCode - 1)) + 1
-        const bits = new GifBits(this.codeSize)
+        this.codeSize = Math.floor(Math.log2(this.lastUsedCode))
+        const bits = new GifBits(this.codeSize + 1)
 
         // Flush the last phrase in the output stream.
         this.outPhrase()
 
         // Add the end of information code at the end of the output stream.
         this.output.push(17)
-
+console.log(this.output.numString)
         // Converts the output stream to a bits string.
         this.output.numString.forEach(value => bits.push(value))
 
@@ -358,6 +366,7 @@ class GifMinitel {
 
 /**
  * Concatenate multiple Uint8Array.
+ *
  * @param {Uint8Array} arrays Arrays to concatenate.
  * @returns {Uint8Array}
  */
@@ -380,7 +389,8 @@ GifMinitel.concatArray = function(...arrays) {
 }
 
 /**
- * Put an array into blocks.
+ * Put an array into blocks. Gif data must be contained into blocks preceded by
+ * their size. The size of a block is 255 bytes at most.
  *
  * @param {Uint8Array} array Arrays to slice into blocks.
  * @returns {Uint8Array}
@@ -520,7 +530,7 @@ GifMinitel.imageData = function(image) {
     const data = gifc.encode()
 
     return GifMinitel.concatArray(
-        new Uint8Array([gifc.codeSize - 1]),
+        new Uint8Array([gifc.codeSize]),
         GifMinitel.arrayBlock(data),
         new Uint8Array([0x00])
     )
