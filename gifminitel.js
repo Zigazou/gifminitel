@@ -178,7 +178,7 @@ class GifCompress {
          * because code 16 and 17 are reserved.
          * @member {number}
          */
-        this.nextCode = 17
+        this.nextCode = 18
 
         /**
          * The last code being used in the output stream.
@@ -192,6 +192,8 @@ class GifCompress {
          * @member {number}
          */
         this.codeSize = 5
+
+        this.charRead = 0
     }
 
     /**
@@ -205,6 +207,19 @@ class GifCompress {
      */
     push(red, green, blue, opacity) {
         const colorIndex = GifCompress.colorToValue(red, green, blue, opacity)
+        console.log(
+            this.charRead, "|",
+            this.phrase.toString(), "|",
+            "READ:", colorIndex
+        )
+        this.charRead++
+
+        // Initial state.
+        if(this.phrase.len() === 0) {
+            this.phrase.push(colorIndex)
+            console.log("\tOUTPUT:", this.output.toString())
+            return
+        }
 
         // The next phrase is the current phrase plus the character being read.
         const nextPhrase = this.phrase.plus(colorIndex).toString()
@@ -216,6 +231,7 @@ class GifCompress {
         }
 
         // A new phrase has been found, add it to the dictionary.
+        console.log("\tCODE", this.nextCode, "=", nextPhrase)
         this.dictionary.set(nextPhrase, this.nextCode)
 
         // One more phrase in the dictionary.
@@ -235,22 +251,26 @@ class GifCompress {
      * @private
      */
     outPhrase() {
-        switch(this.phrase.len()) {
-            case 0:
-                // Empty phrase, nothing to do!
-                return
-
-            case 1:
-                // A raw value is its own index.
-                this.output.push(this.phrase.first())
-                return
-
-            default:
-                // Find the index of the phrase in the dictionary.
-                const code = this.dictionary.get(this.phrase.toString())
-                if(code > this.lastUsedCode) this.lastUsedCode = code
-                this.output.push(code)
+        if(this.phrase.len() === 1) {
+            // A raw value is its own index.
+            this.output.push(this.phrase.first())
+        } else {
+            // Find the index of the phrase in the dictionary.
+            const code = this.dictionary.get(this.phrase.toString())
+            if(code > this.lastUsedCode) this.lastUsedCode = code
+            this.output.push(code)
         }
+
+        let debug = ""
+        this.output.numString.forEach(code => {
+            debug += " " + code.toString()
+            if(code >= 18) {
+                this.dictionary.forEach((value, key) => {
+                    if(value === code) debug += "[" + key.toString() + "]"
+                })
+            }
+        })
+        console.log("\tOUTPUT:", debug)
     }
 
     /**
@@ -268,7 +288,7 @@ class GifCompress {
 
         // Add the end of information code at the end of the output stream.
         this.output.push(17)
-console.log(this.output.numString)
+
         // Converts the output stream to a bits string.
         this.output.numString.forEach(value => bits.push(value))
 

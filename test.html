@@ -2,6 +2,13 @@
     <head>
         <meta charset="utf-8">
         <title>Test GifMinitel</title>
+        <style>
+            img {
+                width: 100%;
+                height: auto;
+                image-rendering: -moz-crisp-edges;
+            }
+        </style>
     </head>
     <body>
         <fieldset>
@@ -12,53 +19,38 @@
         </fieldset>
         <script src="gifminitel.js"></script>
         <script>
-            const gifm = new GifMinitel(32, 2, 40)
+            const rows = 2
+            const gifm = new GifMinitel(16, rows, 40)
             const array = []
-            for(let i = 0; i < 4; i++) {
+            for(let i = 0; i < rows; i++) {
                 array.push([0, 0, 0, 255]) // Black
                 array.push([0, 0, 255, 255]) // Blue
                 array.push([0, 0, 255, 255]) // Blue
+
                 array.push([0, 0, 0, 255]) // Black
                 array.push([0, 0, 255, 255]) // Blue
                 array.push([0, 0, 255, 255]) // Blue
                 array.push([255, 0, 0, 255]) // Red
+
                 array.push([0, 0, 0, 255]) // Black
                 array.push([0, 0, 255, 255]) // Blue
                 array.push([0, 0, 255, 255]) // Blue
                 array.push([255, 0, 0, 255]) // Red
+
                 array.push([0, 0, 0, 255]) // Black
                 array.push([0, 0, 0, 255]) // Black
                 array.push([0, 0, 0, 255]) // Black
+
                 array.push([0, 0, 0, 0]) // Transparent
                 array.push([0, 0, 0, 0]) // Transparent
             }
-            gifm.add(array, 32, 2)
-            /*
-            gifm.add([
-                [0, 0, 0, 255], // Black
-                [0, 0, 255, 255], // Blue
-                [0, 0, 255, 255], // Blue
-                [0, 0, 0, 255], // Black
-                [0, 0, 255, 255], // Blue
-                [0, 0, 255, 255], // Blue
-                [255, 0, 0, 255], // Red
-                [0, 0, 0, 255], // Black
-                [0, 0, 255, 255], // Blue
-                [0, 0, 255, 255], // Blue
-                [255, 0, 0, 255], // Red
-                [0, 0, 0, 255], // Black
-                [0, 0, 0, 255], // Black
-                [0, 0, 0, 255], // Black
-                [0, 0, 0, 0], // Transparent
-                [0, 0, 0, 0] // Transparent
-            ])
-            */
+            gifm.add(array, 16, rows)
 
             const data = gifm.save()
             const blob = new Blob([data], {type: "image/gif"});
             const url = URL.createObjectURL(blob, {type: "image/gif"})
             document.getElementById("test-lnk").href = url
-            document.getElementById("test-img").url = url
+            document.getElementById("test-img").src = url
         </script>
     </body>
 </html>
