@@ -19,8 +19,8 @@
         </fieldset>
         <script src="gifminitel.js"></script>
         <script>
-            const rows = 160
-            const gifm = new GifMinitel(64, rows/4, 40)
+            const rows = 1024*64
+            const gifm = new GifMinitel(1024, rows/64, 40)
             const array = []
             for(let i = 0; i < rows; i++) {
                 array.push([0, 0, 0, 255]) // Black
@@ -44,7 +44,7 @@
                 array.push([0, 0, 0, 0]) // Transparent
                 array.push([0, 0, 0, 0]) // Transparent
             }
-            gifm.add(array, 64, rows/4)
+            gifm.add(array, 1024, rows/64)
 
             const data = gifm.save()
             const blob = new Blob([data], {type: "image/gif"});

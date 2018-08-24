@@ -197,6 +197,13 @@ class GifCompress {
         this.output.push(16)
     }
 
+    restart() {
+        this.nextCode = 18
+        this.dictionary = new Map()
+        this.phrase = new GifString()
+        this.output.wordSize = 5
+    }
+
     /**
      * Push computes a pixels from the stream. It implements an iteration from
      * the LZW compression algorithm.
@@ -226,6 +233,8 @@ class GifCompress {
 
         // Output the current phrase.
         this.outPhrase()
+
+        if(this.output.wordSize > 12) this.restart()
 
         // One more phrase in the dictionary.
         this.dictionary.set(nextPhrase, this.nextCode)
