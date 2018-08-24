@@ -118,6 +118,15 @@ class GifBits {
     }
 
     /**
+     * Change word size.
+     *
+     * @param {number} value
+     */
+    nextWordSize(value) {
+        if(value >= Math.pow(this.wordSize)) this.wordSize++
+    }
+
+    /**
      * Add a word to the bits. Bits are stored reversed order.
      *
      * @param {number} value Word to add
@@ -134,8 +143,10 @@ class GifBits {
      */
     bytes() {
         // Calculate pad bits
-        const padBits = "0".repeat(8 - this.bitString.length % 8)
-        this.bitString = padBits + this.bitString
+        const orphanBits = this.bitString.length % 8
+        if(orphanBits !== 0) {
+            this.bitString = "0".repeat(8 - orphanBits) + this.bitString
+        }
 
         const bytes = []
 
@@ -156,24 +167,6 @@ class GifCompress {
      */
     constructor() {
         /**
-         * The dictionary of our LZW encoder.
-         * @member {Map}
-         */
-        this.dictionary = new Map()
-
-        /**
-         * The current phrase being read.
-         * @member {GifString}
-         */
-        this.phrase = new GifString()
-
-        /**
-         * The output.
-         * @member {GifString}
-         */
-        this.output = new GifString(16)
-
-        /**
          * The last code being created in the dictionary. It starts at 18
          * because code 16 and 17 are reserved.
          * @member {number}
@@ -181,19 +174,27 @@ class GifCompress {
         this.nextCode = 18
 
         /**
-         * The last code being used in the output stream.
-         * @member {number}
+         * The dictionary of our LZW encoder.
+         *
+         * @member {Map}
          */
-        this.lastUsedCode = 0
+        this.dictionary = new Map()
 
         /**
-         * The code size
+         * The current phrase being read.
          *
-         * @member {number}
+         * @member {GifString}
          */
-        this.codeSize = 5
+        this.phrase = new GifString()
 
-        this.charRead = 0
+        /**
+         * The output starts with words of 5 bits length since the color palette
+         * will always have 16 colors max.
+         *
+         * @member {GifBits}
+         */
+        this.output = new GifBits(5)
+        this.output.push(16)
     }
 
     /**
@@ -207,17 +208,10 @@ class GifCompress {
      */
     push(red, green, blue, opacity) {
         const colorIndex = GifCompress.colorToValue(red, green, blue, opacity)
-        console.log(
-            this.charRead, "|",
-            this.phrase.toString(), "|",
-            "READ:", colorIndex
-        )
-        this.charRead++
 
         // Initial state.
         if(this.phrase.len() === 0) {
             this.phrase.push(colorIndex)
-            console.log("\tOUTPUT:", this.output.toString())
             return
         }
 
@@ -230,15 +224,12 @@ class GifCompress {
             return this
         }
 
-        // A new phrase has been found, add it to the dictionary.
-        console.log("\tCODE", this.nextCode, "=", nextPhrase)
-        this.dictionary.set(nextPhrase, this.nextCode)
-
-        // One more phrase in the dictionary.
-        this.nextCode++
-
         // Output the current phrase.
         this.outPhrase()
+
+        // One more phrase in the dictionary.
+        this.dictionary.set(nextPhrase, this.nextCode)
+        this.nextCode++
 
         // The new phrase contains only the character being read.
         this.phrase = new GifString(colorIndex)
@@ -256,21 +247,12 @@ class GifCompress {
             this.output.push(this.phrase.first())
         } else {
             // Find the index of the phrase in the dictionary.
-            const code = this.dictionary.get(this.phrase.toString())
-            if(code > this.lastUsedCode) this.lastUsedCode = code
-            this.output.push(code)
+            this.output.push(this.dictionary.get(this.phrase.toString()))
         }
 
-        let debug = ""
-        this.output.numString.forEach(code => {
-            debug += " " + code.toString()
-            if(code >= 18) {
-                this.dictionary.forEach((value, key) => {
-                    if(value === code) debug += "[" + key.toString() + "]"
-                })
-            }
-        })
-        console.log("\tOUTPUT:", debug)
+        if(this.nextCode >= Math.pow(2, this.output.wordSize)) {
+            this.output.wordSize++
+        }
     }
 
     /**
@@ -279,21 +261,14 @@ class GifCompress {
      * @returns {Uint8Array}
      */
     encode() {
-        // Calculate how many bits are needed to encode a dictionary index.
-        this.codeSize = Math.floor(Math.log2(this.lastUsedCode))
-        const bits = new GifBits(this.codeSize + 1)
-
         // Flush the last phrase in the output stream.
         this.outPhrase()
 
         // Add the end of information code at the end of the output stream.
         this.output.push(17)
 
-        // Converts the output stream to a bits string.
-        this.output.numString.forEach(value => bits.push(value))
-
         // Packs the bits string in bytes.
-        return bits.bytes()
+        return this.output.bytes()
     }
 }
 
@@ -307,7 +282,7 @@ class GifCompress {
  * @returns {number}
  */
 GifCompress.colorToValue = function(red, green, blue, opacity) {
-    if(opacity === 0) return 8
+    if(opacity === 0) return 15
     return (red === 0 ? 0 : 4) | (green === 0 ? 0 : 2) | (blue === 0 ? 0 : 1)
 }
 
@@ -483,14 +458,14 @@ GifMinitel.globalColorTable = new Uint8Array([
     0xFF, 0x00, 0xFF, // Magenta
     0xFF, 0xFF, 0x00, // Yellow
     0xFF, 0xFF, 0xFF, // White
-    0xFB, 0xFB, 0xFB, // Transparent color
-    0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00
+    0xFB, 0xFB, 0xFB,
+    0xFB, 0xFB, 0xFB,
+    0xFB, 0xFB, 0xFB,
+    0xFB, 0xFB, 0xFB,
+    0xFB, 0xFB, 0xFB,
+    0xFB, 0xFB, 0xFB,
+    0xFB, 0xFB, 0xFB,
+    0xFB, 0xFB, 0xFB  // Transparent color
 ])
 
 /**
@@ -509,7 +484,7 @@ GifMinitel.graphicControlExtension = function(delay) {
         0b00000001, // Do not dispose, user input not expected, transparent
                     // index given.
         delay & 0x00FF, delay >> 8, // Delay time in 1/100th seconds
-        0x08, // Transparent color index
+        0x0F, // Transparent color index
         0x00 // Block terminator
     ])
 }
@@ -550,7 +525,7 @@ GifMinitel.imageData = function(image) {
     const data = gifc.encode()
 
     return GifMinitel.concatArray(
-        new Uint8Array([gifc.codeSize]),
+        new Uint8Array([4]),
         GifMinitel.arrayBlock(data),
         new Uint8Array([0x00])
     )
