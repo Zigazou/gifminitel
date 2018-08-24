@@ -5,6 +5,8 @@ GifMinitel is a JavaScript library that can create an animated Gif file. It is
 targeted to encode Minitel screens, therefore it cannot be used for other types
 of images.
 
+![Example](output.gif)
+
 Why another Gif encoder?
 ------------------------
 
