@@ -1,55 +1,95 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Test GifMinitel</title>
+        <title>GifMinitel demonstration</title>
+
+        <!-- Some styling -->
         <style>
-            img {
-                width: 100%;
-                height: auto;
-                image-rendering: -moz-crisp-edges;
+            article {
+                margin: 0 auto;
+                padding: 2em;
+                max-width: 50em;
+                background: repeating-linear-gradient(
+                    45deg, #EEEEEE, #EEEEEE 1em, #FFFFFF 1em, #FFFFFF 2em
+                );                
+                text-align: center;
             }
+
+            h1, h2 { font-family: sans-serif; }
+
+            h1 {
+                margin-top: 0;
+                font-size: 300%;
+            }
+
+            h2 { font-size: 200%; }
         </style>
     </head>
     <body>
-        <fieldset>
-            <a href="" id="test-lnk">Télécharger</a>
-        </fieldset>
-        <fieldset>
-            <img src="" id="test-img">
-        </fieldset>
+        <article>
+            <h1>GifMinitel demonstration</h1>
+            <h2>Canvas</h2>
+            <!-- Frames will be drawn on this canvas. -->
+            <canvas id="test-canvas" width="320" height="250"></canvas>
+
+            <h2>Animated GIF based on the canvas</h2>
+            <!-- Animated GIF will be installed in this image. -->
+            <img id="test-img" width="320" height="250">
+
+            <h2>About GifMinitel</h2>
+            <p>
+                <a href="https://github.com/zigazou/gifminitel">
+                    GifMinitel on Github
+                </a>
+            </p>
+        </article>
+
+        <!-- Only one script to import. -->
         <script src="gifminitel.js"></script>
+
+        <!-- Do the magic. -->
         <script>
-            const rows = 1024*64
-            const gifm = new GifMinitel(1024, rows/64, 40)
-            const array = []
-            for(let i = 0; i < rows; i++) {
-                array.push([0, 0, 0, 255]) // Black
-                array.push([0, 0, 255, 255]) // Blue
-                array.push([0, 0, 255, 255]) // Blue
+            // Create a new GIF with a delay of 20 milliseconds between frames.
+            const gifm = new GifMinitel(320, 250, 20)
 
-                array.push([0, 0, 0, 255]) // Black
-                array.push([0, 0, 255, 255]) // Blue
-                array.push([0, 0, 255, 255]) // Blue
-                array.push([255, 0, 0, 255]) // Red
+            // Get the canvas on which we will draw each frame.
+            const canvas = document.getElementById("test-canvas")
 
-                array.push([0, 0, 0, 255]) // Black
-                array.push([0, 0, 255, 255]) // Blue
-                array.push([0, 0, 255, 255]) // Blue
-                array.push([255, 0, 0, 255]) // Red
+            // Get the context to draw.
+            const ctx = canvas.getContext("2d")
 
-                array.push([0, 0, 0, 255]) // Black
-                array.push([0, 0, 0, 255]) // Black
-                array.push([0, 0, 0, 255]) // Black
+            // The first frame will be the empty canvas.
+            gifm.add(ctx.getImageData(0, 0, 320, 250))
 
-                array.push([0, 0, 0, 0]) // Transparent
-                array.push([0, 0, 0, 0]) // Transparent
+            // Minitel color palette for random selection.
+            const colors = ["#FF0000", "#00FF00", "#0000FF", "#000000",
+                            "#FFFF00", "#00FFFF", "#FF00FF", "#FFFFFF"]
+
+            // Draw 500 frames (500 × 20ms = 10s).
+            for(let i = 0; i < 500; i++) {
+                // Fill with a random color.
+                ctx.fillStyle = colors[Math.random() * colors.length | 0]
+
+                // Draw a 64×64 filled square at a random position.
+                ctx.fillRect(
+                    Math.random() * 320 | 0,
+                    Math.random() * 250 | 0,
+                    64,
+                    64
+                )
+
+                // Add the frame to the animated GIF.
+                gifm.add(ctx.getImageData(0, 0, 320, 250))
             }
-            gifm.add(array, 1024, rows/64)
 
+            // Generate the animated GIF.
             const data = gifm.save()
+
+            // Create an object URL from the animated GIF.
             const blob = new Blob([data], {type: "image/gif"});
             const url = URL.createObjectURL(blob, {type: "image/gif"})
-            document.getElementById("test-lnk").href = url
+
+            // Show the animated GIF below the canvas.
             document.getElementById("test-img").src = url
         </script>
     </body>
