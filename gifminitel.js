@@ -741,9 +741,9 @@ GifMinitel.rgba2indexed = function(rgbas) {
         } else {
             // The palette is organized in such a way that the index can be
             // determined by computation.
-            indexeds[dst] = (rgbas[src] === 0 ? 0 : 4)
-                          | (rgbas[src + 1] === 0 ? 0 : 2)
-                          | (rgbas[src + 2] === 0 ? 0 : 1)
+            indexeds[dst] = rgbas[src] & 4
+                          | rgbas[src + 1] & 2
+                          | rgbas[src + 2] & 1
         }
 
         dst++
@@ -753,85 +753,93 @@ GifMinitel.rgba2indexed = function(rgbas) {
 }
 
 /**
- * Calculate the differences between 2 images.
+ * Find the left column where two images first differ.
  *
- * @param {Uint8Array} previous The previous image
- * @param {Uint8Array} current The current image
- * @returns {Uint8Array}
+ * @param {Uint8Array} previous The previous image.
+ * @param {Uint8Array} current The current image.
+ * @returns {number}
  */
-GifMinitel.imageDifference = function(previous, current) {
-    const boundaries = {
-        left: 0,
-        right: GifMinitel.WIDTH - 1,
-        top: 0,
-        bottom: GifMinitel.HEIGHT - 1,
-        width: GifMinitel.WIDTH,
-        height: GifMinitel.HEIGHT
-    }
-
-    let offset = 0
-
-    // Find left boundary
-    LEFTBOUNDARY: {
-        for(let x = 0; x < GifMinitel.WIDTH; x++) {
-            offset = x
-            for(let y = 0; y < GifMinitel.HEIGHT; y++) {
-                if(previous[offset] !== current[offset]) {
-                    boundaries.left = x
-                    break LEFTBOUNDARY
-                }
-                offset += GifMinitel.WIDTH
-            }
-        }
-    }
-
-    // Find right boundary
-    RIGHTBOUNDARY: {
-        for(let x = GifMinitel.WIDTH - 1; x >= 0; x--) {
-            offset = x
-            for(let y = 0; y < GifMinitel.HEIGHT; y++) {
-                if(previous[offset] !== current[offset]) {
-                    boundaries.right = x
-                    break RIGHTBOUNDARY
-                }
-                offset += GifMinitel.WIDTH
-            }
-        }
-    }
-
-    // Find top boundary
-    TOPBOUNDARY: {
-        offset = 0
+GifMinitel.leftBoundary = function(previous, current) {
+    let offset
+    for(let x = 0; x < GifMinitel.WIDTH; x++) {
+        offset = x
         for(let y = 0; y < GifMinitel.HEIGHT; y++) {
-            for(let x = 0; x < GifMinitel.WIDTH; x++) {
-                if(previous[offset] !== current[offset]) {
-                    boundaries.top = y
-                    break TOPBOUNDARY
-                }
-                offset++
-            }
+            if(previous[offset] !== current[offset]) return x
+            offset += GifMinitel.WIDTH
         }
     }
 
-    // Find bottom boundary
-    BOTTOMBOUNDARY: {
-        offset = GifMinitel.WIDTH * GifMinitel.HEIGHT - 1
-        for(let y = GifMinitel.HEIGHT - 1; y >= 0; y--) {
-            for(let x = 0; x < GifMinitel.WIDTH; x++) {
-                if(previous[offset] !== current[offset]) {
-                    boundaries.bottom = y
-                    break BOTTOMBOUNDARY
-                }
-                offset--
-            }
+    return GifMinitel.WIDTH - 1
+}
+
+/**
+ * Find the right column where two images last differ.
+ *
+ * @param {Uint8Array} previous The previous image.
+ * @param {Uint8Array} current The current image.
+ * @returns {number}
+ */
+GifMinitel.rightBoundary = function(previous, current) {
+    let offset
+    for(let x = GifMinitel.WIDTH - 1; x >= 0; x--) {
+        offset = x
+        for(let y = 0; y < GifMinitel.HEIGHT; y++) {
+            if(previous[offset] !== current[offset]) return x
+            offset += GifMinitel.WIDTH
         }
     }
 
-    // Calculate width and height of the zone
-    boundaries.width = boundaries.right - boundaries.left + 1
-    boundaries.height = boundaries.bottom - boundaries.top + 1
+    return 0
+}
 
-    // Compute the difference only in the zone
+/**
+ * Find the top row where two images first differ.
+ *
+ * @param {Uint8Array} previous The previous image.
+ * @param {Uint8Array} current The current image.
+ * @returns {number}
+ */
+GifMinitel.topBoundary = function(previous, current) {
+    let offset = 0
+    for(let y = 0; y < GifMinitel.HEIGHT; y++) {
+        for(let x = 0; x < GifMinitel.WIDTH; x++) {
+            if(previous[offset] !== current[offset]) return y
+            offset++
+        }
+    }
+
+    return GifMinitel.HEIGHT - 1
+}
+
+/**
+ * Find the bottom row where two images last differ.
+ *
+ * @param {Uint8Array} previous The previous image.
+ * @param {Uint8Array} current The current image.
+ * @returns {number}
+ */
+GifMinitel.bottomBoundary = function(previous, current) {
+    let offset = GifMinitel.WIDTH * GifMinitel.HEIGHT - 1
+    for(let y = GifMinitel.HEIGHT - 1; y >= 0; y--) {
+        for(let x = 0; x < GifMinitel.WIDTH; x++) {
+            if(previous[offset] !== current[offset]) return y
+            offset--
+        }
+    }
+
+    return 0
+}
+
+/**
+ * Crop a current image and make transparent pixels that do not change from the
+ * previous image.
+ *
+ * @param {Uint8Array} previous The previous image.
+ * @param {Uint8Array} current The current image.
+ * @param {Object} boundaries The boundaries on which the current image should
+ *                            be cropped.
+ */
+GifMinitel.cropAndDifference = function(previous, current, boundaries) {
     const difference = new Uint8Array(boundaries.width * boundaries.height)
 
     let destination = 0
@@ -849,8 +857,33 @@ GifMinitel.imageDifference = function(previous, current) {
         }
     }
 
+    return difference
+}
+
+/**
+ * Calculate the differences between 2 images.
+ *
+ * @param {Uint8Array} previous The previous image
+ * @param {Uint8Array} current The current image
+ * @returns {Uint8Array}
+ */
+GifMinitel.imageDifference = function(previous, current) {
+    const boundaries = {
+        left: GifMinitel.leftBoundary(previous, current),
+        right: GifMinitel.rightBoundary(previous, current),
+        top: GifMinitel.topBoundary(previous, current),
+        bottom: GifMinitel.bottomBoundary(previous, current),
+        width: undefined,
+        height: undefined
+    }
+
+    // Calculate width and height of the zone
+    boundaries.width = Math.max(1, boundaries.right - boundaries.left + 1)
+    boundaries.height = Math.max(1, boundaries.bottom - boundaries.top + 1)
+
+    // Compute the difference only in the zone
     return {
         boundaries: boundaries,
-        image: difference
+        image: GifMinitel.cropAndDifference(previous, current, boundaries)
     }
 }
